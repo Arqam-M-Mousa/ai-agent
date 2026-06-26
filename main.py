@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
+from prompts import system_prompt
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Chatbot")
@@ -42,6 +43,7 @@ def generate_response(client, messages):
     return client.models.generate_content(
         model="gemini-2.5-flash",
         contents=messages,
+        config =types.GenerateContentConfig(system_instruction=system_prompt)
     )
 
 
