@@ -6,6 +6,7 @@ from google import genai
 from google.genai import types
 
 from prompts import system_prompt
+from functions.call_functions import available_functions
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Chatbot")
@@ -43,9 +44,10 @@ def generate_response(client, messages):
     return client.models.generate_content(
         model="gemini-2.5-flash",
         contents=messages,
-        config =types.GenerateContentConfig(system_instruction=system_prompt)
-    )
-
+        config=types.GenerateContentConfig(
+            tools=[available_functions], system_instruction=system_prompt
+        )
+)    
 
 def print_output(response, verbose: bool, user_prompt: str):
     if response.usage_metadata is None:
@@ -56,9 +58,18 @@ def print_output(response, verbose: bool, user_prompt: str):
         print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
         print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
 
-    print("Response:")
-    print(response.text)
+    function_calls = getattr(response, "function_calls", None)
 
+    # CASE 1: function calls exist → print only calls
+    if function_calls:
+        for function_call in function_calls:
+            print(
+                f"Calling function: {function_call.name}({function_call.args})"
+            )
+        return
+
+    # CASE 2: no function calls → print text
+    print(response.text)
 
 def main():
     args = parse_args()
