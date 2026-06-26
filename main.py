@@ -6,6 +6,19 @@ from google import genai
 from google.genai import types
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Chatbot")
+
+    parser.add_argument("user_prompt", type=str, help="User prompt")
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output",
+    )
+
+    return parser.parse_args()
+
+
 def get_api_key() -> str:
     load_dotenv()
 
@@ -16,15 +29,7 @@ def get_api_key() -> str:
     return api_key
 
 
-def get_user_prompt() -> str:
-    parser = argparse.ArgumentParser(description="Chatbot")
-    parser.add_argument("user_prompt", type=str, help="User prompt")
-    args = parser.parse_args()
-
-    return args.user_prompt
-
-
-def build_messages(prompt: str) -> list[types.Content]:
+def build_messages(prompt: str):
     return [
         types.Content(
             role="user",
@@ -33,35 +38,37 @@ def build_messages(prompt: str) -> list[types.Content]:
     ]
 
 
-def generate_response(
-    client: genai.Client,
-    messages: list[types.Content],
-):
+def generate_response(client, messages):
     return client.models.generate_content(
         model="gemini-2.5-flash",
         contents=messages,
     )
 
 
-def print_response(response) -> None:
+def print_output(response, verbose: bool, user_prompt: str):
     if response.usage_metadata is None:
         raise RuntimeError("No usage metadata returned by Gemini API")
 
-    print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
-    print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+    if verbose:
+        print(f"User prompt: {user_prompt}")
+        print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
+        print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+
     print("Response:")
     print(response.text)
 
 
-def main() -> None:
+def main():
+    args = parse_args()
+
     client = genai.Client(api_key=get_api_key())
 
-    prompt = get_user_prompt()
-    messages = build_messages(prompt)
+    messages = build_messages(args.user_prompt)
 
     response = generate_response(client, messages)
 
-    print_response(response)
+    print_output(response, args.verbose, args.user_prompt)
+
 
 if __name__ == "__main__":
     main()
