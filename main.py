@@ -47,7 +47,7 @@ def generate_response(client, messages):
         config=types.GenerateContentConfig(
             tools=[available_functions], system_instruction=system_prompt
         )
-)    
+    )
 
 def print_output(response, verbose: bool, user_prompt: str):
     if response.usage_metadata is None:
