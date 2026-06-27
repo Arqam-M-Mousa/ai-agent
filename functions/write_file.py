@@ -1,5 +1,24 @@
 import os
+from google.genai import types
 
+schema_write_file = types.FunctionDeclaration(
+    name="write_file",
+    description="Writes content to a file relative to the working directory, creating parent directories if needed and overwriting any existing file.",
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "file_path": types.Schema(
+                type=types.Type.STRING,
+                description="Path to the file to write, relative to the working directory",
+            ),
+            "content": types.Schema(
+                type=types.Type.STRING,
+                description="The content to write to the file",
+            ),
+        },
+        required=["file_path", "content"],
+    ),
+)
 
 def write_file(working_directory: str, file_path: str, content: str) -> str:
     try:
@@ -26,5 +45,3 @@ def write_file(working_directory: str, file_path: str, content: str) -> str:
 
     except Exception as e:
         return f"Error: {str(e)}"
-
-
