@@ -6,7 +6,9 @@ from google import genai
 from google.genai import types
 
 from prompts import system_prompt
-from functions.call_functions import available_functions
+from functions.call_functions import call_function
+from functions.available_functions import available_functions
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Chatbot")
@@ -45,9 +47,11 @@ def generate_response(client, messages):
         model="gemini-2.5-flash",
         contents=messages,
         config=types.GenerateContentConfig(
-            tools=[available_functions], system_instruction=system_prompt
-        )
+            tools=[available_functions],
+            system_instruction=system_prompt,
+        ),
     )
+
 
 def print_output(response, verbose: bool, user_prompt: str):
     if response.usage_metadata is None:
@@ -60,16 +64,28 @@ def print_output(response, verbose: bool, user_prompt: str):
 
     function_calls = getattr(response, "function_calls", None)
 
-    # CASE 1: function calls exist → print only calls
     if function_calls:
-        for function_call in function_calls:
-            print(
-                f"Calling function: {function_call.name}({function_call.args})"
-            )
-        return
+        function_results = []
 
-    # CASE 2: no function calls → print text
+        for function_call in function_calls:
+            function_call_result = call_function(function_call, verbose=verbose)
+
+            if not function_call_result.parts:
+                raise RuntimeError("Tool returned empty parts")
+
+            fn_response = function_call_result.parts[0].function_response
+            if fn_response is None or fn_response.response is None:
+                raise RuntimeError("Invalid tool response")
+
+            function_results.append(function_call_result.parts[0])
+
+            if verbose:
+                print(f"-> {fn_response.response}")
+
+        return function_results
+
     print(response.text)
+
 
 def main():
     args = parse_args()
